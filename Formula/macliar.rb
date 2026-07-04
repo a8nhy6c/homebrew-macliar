@@ -10,8 +10,15 @@ class Macliar < Formula
   depends_on xcode: :build
 
   def install
-    app_path = Utils.safe_popen_read("bash", "Scripts/build-app.sh", "release", buildpath).strip
-    prefix.install app_path
+    # --disable-sandbox is required: Homebrew already builds inside a sandbox, and SwiftPM's own
+    # nested sandbox for manifest and plugin compilation fails there with "sandbox_apply: Operation
+    # not permitted". Building directly here also keeps swift build output visible to Homebrew.
+    system "swift", "build", "--disable-sandbox", "-c", "release"
+    app = buildpath/"macliar.app"
+    (app/"Contents/MacOS").mkpath
+    (app/"Contents").install "Bundle/Info.plist"
+    (app/"Contents/MacOS").install ".build/release/macliar"
+    prefix.install app
   end
 
   def caveats
